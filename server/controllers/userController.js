@@ -220,22 +220,30 @@ export const sendConnectionRequest = async (req, res) => {
 }
 
 // Get User Connections
+// Get User Connections
 export const getUserConnections = async (req, res) => {
     try {
-        const {userId} = req.auth()
-        const user = await User.findById(userId).populate('connections followers following')
+        const { userId } = req.auth();
 
-        const connections = user.connections
-        const followers = user.followers
-        const following = user.following
+        // 1. Attempt to find the user
+        const user = await User.findById(userId).populate('connections followers following');
 
-        const pendingConnections = (await Connection.find({to_user_id: userId, status: 'pending'}).populate('from_user_id')).map(connection=>connection.from_user_id)
+        // 2. CRITICAL FIX: Check if user exists before accessing properties
+        if (!user) {
+            return res.json({ success: false, message: "User not found in database" });
+        }
 
-        res.json({success: true, connections, followers, following, pendingConnections})
+        const connections = user.connections;
+        const followers = user.followers;
+        const following = user.following;
+
+        const pendingConnections = (await Connection.find({ to_user_id: userId, status: 'pending' }).populate('from_user_id')).map(connection => connection.from_user_id);
+
+        res.json({ success: true, connections, followers, following, pendingConnections });
 
     } catch (error) {
         console.log(error);
-        res.json({success: false, message: error.message})
+        res.json({ success: false, message: error.message });
     }
 }
 
